@@ -1,5 +1,5 @@
-# xGrassDesktopNode
-This bot connects via multiple HTTP proxies to farm Grass Airdrop Season 2 using a single account. It automatically removes faulty proxies and uses the Grass Desktop Node to double the farming points (x2.0).
+# xGrassBot
+This bot connects via multiple HTTP proxies to farm Grass Airdrop Season 2 using a single account. It automatically removes faulty proxies (on/off) and uses the Grass Desktop Node to double the farming points (x2.0).
 
 ## Installation
 
@@ -10,7 +10,7 @@ This bot connects via multiple HTTP proxies to farm Grass Airdrop Season 2 using
 
 2. Setup resources:
    ```bash
-   git clone https://github.com/officialputuid/xGrassDesktopNode && cd xGrassDesktopNode
+   git clone https://github.com/officialputuid/xGrassBot && cd xGrassBot
    python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
    python3 main.py
    ```
@@ -23,10 +23,16 @@ This bot connects via multiple HTTP proxies to farm Grass Airdrop Season 2 using
   - In the "Console" tab, type:
    `localStorage.getItem('userId');`
   - Copy the result without "" or '' and paste it into `uid.txt`.
+  - For multiple accounts, add each uid on a new line, for example:
+       ```
+     uid1
+     uid2
+     uid2
+     ```
 
 ## Proxy  
 - Fill in `proxy.txt` with the format `protocol://user:pass@host:port`.  
-- Adjust the number of proxies to use on the following line `23 "ONETIME_PROXY = 50"`
+- Adjust the number of proxies to use on the following line `30 "ONETIME_PROXY = 25"`
 
 ## Need Proxy?
 1. Sign up at [Proxies.fo](https://app.proxies.fo/ref/849ec384-ecb5-1151-b4a7-c99276bff848).
