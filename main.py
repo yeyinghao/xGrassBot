@@ -67,7 +67,7 @@ def truncate_proxy(proxy):
 
 async def connect_to_wss(protocol_proxy, user_id):
     device_id = str(uuid.uuid3(uuid.NAMESPACE_DNS, protocol_proxy))
-    logger.info(f"User ID: {truncate_userid(user_id)}, Device ID: {device_id}, Using Proxy: {truncate_proxy(protocol_proxy)}")
+    logger.info(f"User ID: {truncate_userid(user_id)} | Device ID: {device_id} | Proxy: {truncate_proxy(protocol_proxy)}")
 
     while True:
         try:
@@ -99,13 +99,10 @@ async def connect_to_wss(protocol_proxy, user_id):
                         })
                         logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
                         await websocket.send(send_message)
-                        rand_sleep = random.uniform(50, 100) # random delay + increased interval to reduce bandwidth usag
+                        rand_sleep = random.uniform(30, 50) # random delay + reduce bandwidth usage
                         logger.debug(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
                         await asyncio.sleep(rand_sleep)
 
-                init_sleep = random.uniform(4, 24) # random delay
-                logger.debug(f"User ID: {truncate_userid(user_id)} | Initial sleep for {init_sleep:.2f} seconds")
-                await asyncio.sleep(init_sleep)
                 send_ping_task = asyncio.create_task(send_ping())
 
                 try:
@@ -135,8 +132,13 @@ async def connect_to_wss(protocol_proxy, user_id):
                             logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PONG response: {pong_response}")
                             await websocket.send(json.dumps(pong_response))
 
+                except websockets.exceptions.ConnectionClosed as e:
+                    logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
                 finally:
+                    await websocket.close()
+                    logger.info(f"User ID: {truncate_userid(user_id)} | WebSocket connection closed")
                     send_ping_task.cancel()
+                    break
 
         except Exception as e:
             logger.error(f"User ID: {truncate_userid(user_id)} | Error with proxy {truncate_proxy(protocol_proxy)} ➜ {str(e)[:30]}**")
@@ -169,35 +171,41 @@ async def main():
     with open('proxy.txt', 'r') as file:
         all_proxies = file.read().splitlines()
 
-    active_proxies = random.sample(all_proxies, ONETIME_PROXY)
+    used_proxies = min(ONETIME_PROXY, len(all_proxies))
+    active_proxies = random.sample(all_proxies, used_proxies)
 
     tasks = {}
+
     for user_id in user_ids:
         for proxy in active_proxies:
+            await asyncio.sleep(random.uniform(1.0, 2.0))
             task = asyncio.create_task(connect_to_wss(proxy, user_id))
-            tasks[task] = proxy
+            tasks[task] = (proxy, user_id)
 
     while True:
         done, pending = await asyncio.wait(tasks.keys(), return_when=asyncio.FIRST_COMPLETED)
-
         for task in done:
             if task.result() is None:
-                failed_proxy = tasks[task]
-                logger.info(f"Removing and replacing failed proxy: {truncate_proxy(failed_proxy)}")
+                failed_proxy, user_id = tasks[task]
+                logger.info(f"User ID: {truncate_userid(user_id)} | Removing and replacing failed proxy: {truncate_proxy(failed_proxy)}")
 
                 if failed_proxy in active_proxies:
                     active_proxies.remove(failed_proxy)
 
                 new_proxy = random.choice(all_proxies)
                 active_proxies.append(new_proxy)
+
+                await asyncio.sleep(random.uniform(1.0, 2.0))
                 new_task = asyncio.create_task(connect_to_wss(new_proxy, user_id))
-                tasks[new_task] = new_proxy
+                tasks[new_task] = (new_proxy, user_id)
 
             tasks.pop(task)
 
-        for proxy in set(active_proxies) - set(tasks.values()):
-            new_task = asyncio.create_task(connect_to_wss(proxy, user_id))
-            tasks[new_task] = proxy
+        for proxy in set(active_proxies) - {task[0] for task in tasks.values()}:
+            for user_id in user_ids:
+                await asyncio.sleep(random.uniform(1.0, 2.0))
+                new_task = asyncio.create_task(connect_to_wss(proxy, user_id))
+                tasks[new_task] = (proxy, user_id)
 
 def remove_proxy_from_list(proxy):
     with open("proxy.txt", "r+") as file:

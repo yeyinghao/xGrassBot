@@ -33,14 +33,15 @@ This bot connects via multiple HTTP proxies to farm Grass Airdrop Season 2 using
 ## Proxy  
 - Fill in `proxy.txt` with the format `protocol://user:pass@host:port`.  
 - Adjust the number of proxies to use on the following line `30 "ONETIME_PROXY = 25"`
+- If you set `ONETIME_PROXY = 25` and you have `10 uid.txt`, you will need 250+ proxies to run.
 
 ## Need Proxy?
 1. Sign up at [Proxies.fo](https://app.proxies.fo/ref/849ec384-ecb5-1151-b4a7-c99276bff848).
 2. Go to [Plans](https://app.proxies.fo/plans) and only purchase the "ISP plan" (Residential plans don’t work).
 3. Top up your balance, or you can directly buy a plan and pay with Crypto!
 4. Go to the Dashboard, select your ISP plan, and click "Generate Proxy."
-5. Set the proxy format to `protocol://username:password@hostname:port` and choose any number for the proxy count.
-6. Paste the proxies into `proxy.txt`.
+5. Set the proxy format to `protocol://username:password@hostname:port`
+6. Choose any number for the proxy count, and paste the proxies into `proxy.txt`.
 
 ## Donations
 - **PayPal**: [Paypal.me/IPJAP](https://www.paypal.com/paypalme/IPJAP)
