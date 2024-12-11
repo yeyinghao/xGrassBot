@@ -13,7 +13,11 @@ import pyfiglet
 logger.remove()
 logger.add(
     sink=lambda msg: print(msg, end=''),
-    format="{time:DD/MM/YY HH:mm:ss} | <level>{level:8}</level> | <level>{message}</level>"
+    format=(
+        "<green>{time:DD/MM/YY HH:mm:ss}</green> | "
+        "<level>{level:8} | {message}</level>"
+    ),
+    colorize=True
 )
 
 # main.py
@@ -27,7 +31,7 @@ def print_header():
 # Initialize the header
 print_header()
 
-ONETIME_PROXY = 25
+ONETIME_PROXY = 100
 
 # Read UID and Proxy count
 def read_uid_and_proxy():
@@ -88,6 +92,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                 ssl=ssl_context,
                 extra_headers={"User-Agent": custom_headers["User-Agent"]}
             ) as websocket:
+                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully connected to WebSocket with Proxy: {truncate_proxy(protocol_proxy)}")
 
                 async def send_ping():
                     while True:
@@ -100,7 +105,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                         logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
                         await websocket.send(send_message)
                         rand_sleep = random.uniform(30, 50) # random delay + reduce bandwidth usage
-                        logger.debug(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
+                        logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
                         await asyncio.sleep(rand_sleep)
 
                 send_ping_task = asyncio.create_task(send_ping())
@@ -126,17 +131,19 @@ async def connect_to_wss(protocol_proxy, user_id):
                             }
                             logger.debug(f"User ID: {truncate_userid(user_id)} | Sending AUTH response ID: {auth_response['id']}")
                             await websocket.send(json.dumps(auth_response))
+                            logger.success(f"User ID: {truncate_userid(user_id)} | Successfully authenticated with Device ID: {device_id}")
 
                         elif message.get("action") == "PONG":
                             pong_response = {"id": message["id"], "origin_action": "PONG"}
                             logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PONG response: {pong_response}")
                             await websocket.send(json.dumps(pong_response))
+                            logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent PONG response ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
 
                 except websockets.exceptions.ConnectionClosed as e:
                     logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
                 finally:
                     await websocket.close()
-                    logger.info(f"User ID: {truncate_userid(user_id)} | WebSocket connection closed")
+                    logger.warning(f"User ID: {truncate_userid(user_id)} | WebSocket connection closed")
                     send_ping_task.cancel()
                     break
 
@@ -154,12 +161,12 @@ async def connect_to_wss(protocol_proxy, user_id):
 
             if remove_on_all_errors:
                 if any(error_msg in str(e) for error_msg in error_conditions):
-                    logger.info(f"User ID: {truncate_userid(user_id)} | Removing error proxy from the list ➜ {truncate_proxy(protocol_proxy)}")
+                    logger.warning(f"User ID: {truncate_userid(user_id)} | Removing error proxy from the list ➜ {truncate_proxy(protocol_proxy)}")
                     remove_proxy_from_list(protocol_proxy)
                     return None
             else:
                 if "Device creation limit exceeded" in str(e):
-                    logger.info(f"User ID: {truncate_userid(user_id)} | Removing error proxy from the list ➜ {truncate_proxy(protocol_proxy)}")
+                    logger.warning(f"User ID: {truncate_userid(user_id)} | Removing error proxy from the list ➜ {truncate_proxy(protocol_proxy)}")
                     remove_proxy_from_list(protocol_proxy)
                     return None
             continue
@@ -187,7 +194,7 @@ async def main():
         for task in done:
             if task.result() is None:
                 failed_proxy, user_id = tasks[task]
-                logger.info(f"User ID: {truncate_userid(user_id)} | Removing and replacing failed proxy: {truncate_proxy(failed_proxy)}")
+                logger.warning(f"User ID: {truncate_userid(user_id)} | Removing and replacing failed proxy: {truncate_proxy(failed_proxy)}")
 
                 if failed_proxy in active_proxies:
                     active_proxies.remove(failed_proxy)
@@ -198,6 +205,7 @@ async def main():
                 await asyncio.sleep(random.uniform(1.0, 2.0))
                 new_task = asyncio.create_task(connect_to_wss(new_proxy, user_id))
                 tasks[new_task] = (new_proxy, user_id)
+                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully replaced failed proxy: {truncate_proxy(failed_proxy)} with: {truncate_proxy(new_proxy)}")
 
             tasks.pop(task)
 
@@ -206,6 +214,7 @@ async def main():
                 await asyncio.sleep(random.uniform(1.0, 2.0))
                 new_task = asyncio.create_task(connect_to_wss(proxy, user_id))
                 tasks[new_task] = (proxy, user_id)
+                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully started task with proxy: {truncate_proxy(proxy)}")
 
 def remove_proxy_from_list(proxy):
     with open("proxy.txt", "r+") as file:
