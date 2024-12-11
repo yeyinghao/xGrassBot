@@ -139,6 +139,12 @@ async def connect_to_wss(protocol_proxy, user_id):
                             await websocket.send(json.dumps(pong_response))
                             logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent PONG response ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
 
+                        elif message.get("action") == "HTTP_REQUEST":
+                            http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
+                            logger.debug(f"User ID: {truncate_userid(user_id)} | Sending HTTP_REQUEST response: {http_request_response}")
+                            await websocket.send(json.dumps(http_request_response))
+                            logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent HTTP_REQUEST response ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+
                 except websockets.exceptions.ConnectionClosed as e:
                     logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
                 finally:
