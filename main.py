@@ -104,7 +104,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                         })
                         logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
                         await websocket.send(send_message)
-                        rand_sleep = random.uniform(30, 50) # random delay + reduce bandwidth usage
+                        rand_sleep = random.uniform(30, 100) # random delay + reduce bandwidth usage
                         logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
                         await asyncio.sleep(rand_sleep)
 
@@ -191,7 +191,7 @@ async def main():
 
     for user_id in user_ids:
         for proxy in active_proxies:
-            await asyncio.sleep(random.uniform(1.0, 2.0))
+            await asyncio.sleep(random.uniform(1.5, 3.0))
             task = asyncio.create_task(connect_to_wss(proxy, user_id))
             tasks[task] = (proxy, user_id)
 
@@ -208,7 +208,7 @@ async def main():
                 new_proxy = random.choice(all_proxies)
                 active_proxies.append(new_proxy)
 
-                await asyncio.sleep(random.uniform(1.0, 2.0))
+                await asyncio.sleep(random.uniform(1.5, 3.0))
                 new_task = asyncio.create_task(connect_to_wss(new_proxy, user_id))
                 tasks[new_task] = (new_proxy, user_id)
                 logger.success(f"User ID: {truncate_userid(user_id)} | Successfully replaced failed proxy: {truncate_proxy(failed_proxy)} with: {truncate_proxy(new_proxy)}")
@@ -217,7 +217,7 @@ async def main():
 
         for proxy in set(active_proxies) - {task[0] for task in tasks.values()}:
             for user_id in user_ids:
-                await asyncio.sleep(random.uniform(1.0, 2.0))
+                await asyncio.sleep(random.uniform(1.5, 3.0))
                 new_task = asyncio.create_task(connect_to_wss(proxy, user_id))
                 tasks[new_task] = (proxy, user_id)
                 logger.success(f"User ID: {truncate_userid(user_id)} | Successfully started task with proxy: {truncate_proxy(proxy)}")
