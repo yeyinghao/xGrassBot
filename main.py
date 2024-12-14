@@ -126,7 +126,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                                     "user_agent": custom_headers['User-Agent'],
                                     "timestamp": int(time.time()),
                                     "device_type": "desktop",
-                                    "version": "4.29.0"
+                                    "version": "4.30.0"
                                 }
                             }
                             logger.debug(f"User ID: {truncate_userid(user_id)} | Sending AUTH response ID: {auth_response['id']}")
