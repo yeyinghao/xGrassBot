@@ -127,7 +127,11 @@ async def connect_to_wss(protocol_proxy, user_id):
                         while True:
                             response = await websocket.recv()
                             message = json.loads(response)
-                            logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {message}")
+                            simply_message = {
+                                'id': message.get('id'),
+                                'action': message.get('action')
+                            }
+                            logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {simply_message}")
 
                             if message.get("action") == "AUTH":
                                 auth_response = {
@@ -192,7 +196,11 @@ async def connect_to_wss(protocol_proxy, user_id):
                         while True:
                             response = await websocket.recv()
                             message = json.loads(response)
-                            logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {message}")
+                            simply_message = {
+                                'id': message.get('id'),
+                                'action': message.get('action')
+                            }
+                            logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {simply_message}")
 
                             if message.get("action") == "AUTH":
                                 auth_response = {
