@@ -63,6 +63,18 @@ def get_user_input():
 remove_on_all_errors = get_user_input()
 print(f"🔵 You selected: {'Yes' if remove_on_all_errors else 'No'}, ENJOY!\n")
 
+# Ask user for node type (extension or desktop)
+def get_node_type():
+    node_type = ""
+    while node_type not in ['extension', 'desktop']:
+        node_type = input("🔵 Choose node type (extension/desktop): ").strip().lower()
+        if node_type not in ['extension', 'desktop']:
+            print("🔴 Invalid input. Please enter 'extension' or 'desktop'.")
+    return node_type
+
+node_type = get_node_type()
+print(f"🔵 You selected: {node_type.capitalize()} node. ENJOY!\n")
+
 def truncate_userid(user_id):
     return f"{user_id[:4]}--{user_id[-4:]}"
 
@@ -86,72 +98,136 @@ async def connect_to_wss(protocol_proxy, user_id):
             uri = random.choice(urilist)
             proxy = Proxy.from_url(protocol_proxy)
 
-            async with proxy_connect(
-                uri,
-                proxy=proxy,
-                ssl=ssl_context,
-                extra_headers={"User-Agent": custom_headers["User-Agent"]}
-            ) as websocket:
-                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully connected to WebSocket with Proxy: {truncate_proxy(protocol_proxy)}")
+            if node_type == 'desktop':
+                async with proxy_connect(
+                    uri,
+                    proxy=proxy,
+                    ssl=ssl_context,
+                    extra_headers={"User-Agent": custom_headers["User-Agent"]}
+                ) as websocket:
+                    logger.success(f"User ID: {truncate_userid(user_id)} | Successfully connected to WebSocket with Proxy: {truncate_proxy(protocol_proxy)}")
 
-                async def send_ping():
-                    while True:
-                        send_message = json.dumps({
-                            "id": str(uuid.uuid4()),
-                            "version": "1.0.0",
-                            "action": "PING",
-                            "data": {}
-                        })
-                        logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
-                        await websocket.send(send_message)
-                        rand_sleep = random.uniform(30, 100) # random delay + reduce bandwidth usage
-                        logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
-                        await asyncio.sleep(rand_sleep)
+                    async def send_ping():
+                        while True:
+                            send_message = json.dumps({
+                                "id": str(uuid.uuid4()),
+                                "version": "1.0.0",
+                                "action": "PING",
+                                "data": {}
+                            })
+                            logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
+                            await websocket.send(send_message)
+                            rand_sleep = random.uniform(30, 60)  # random delay + reduce bandwidth usage
+                            logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
+                            await asyncio.sleep(rand_sleep)
 
-                send_ping_task = asyncio.create_task(send_ping())
+                    send_ping_task = asyncio.create_task(send_ping())
 
-                try:
-                    while True:
-                        response = await websocket.recv()
-                        message = json.loads(response)
-                        logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {message}")
+                    try:
+                        while True:
+                            response = await websocket.recv()
+                            message = json.loads(response)
+                            logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {message}")
 
-                        if message.get("action") == "AUTH":
-                            auth_response = {
-                                "id": message["id"],
-                                "origin_action": "AUTH",
-                                "result": {
-                                    "browser_id": device_id,
-                                    "user_id": user_id,
-                                    "user_agent": custom_headers['User-Agent'],
-                                    "timestamp": int(time.time()),
-                                    "device_type": "desktop",
-                                    "version": "4.30.0"
+                            if message.get("action") == "AUTH":
+                                auth_response = {
+                                    "id": message["id"],
+                                    "origin_action": "AUTH",
+                                    "result": {
+                                        "browser_id": device_id,
+                                        "user_id": user_id,
+                                        "user_agent": custom_headers['User-Agent'],
+                                        "timestamp": int(time.time()),
+                                        "device_type": "desktop",
+                                        "version": "4.30.0"
+                                    }
                                 }
-                            }
-                            logger.debug(f"User ID: {truncate_userid(user_id)} | Sending AUTH response ID: {auth_response['id']}")
-                            await websocket.send(json.dumps(auth_response))
-                            logger.success(f"User ID: {truncate_userid(user_id)} | Successfully authenticated with Device ID: {device_id}")
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending AUTH response ID: {auth_response['id']}")
+                                await websocket.send(json.dumps(auth_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully authenticated with Device ID: {device_id}")
+                            elif message.get("action") == "PONG":
+                                pong_response = {"id": message["id"], "origin_action": "PONG"}
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PONG response: {pong_response}")
+                                await websocket.send(json.dumps(pong_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent PONG response ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
+                            elif message.get("action") == "HTTP_REQUEST":
+                                http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending HTTP_REQUEST response: {http_request_response}")
+                                await websocket.send(json.dumps(http_request_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent HTTP_REQUEST response ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                    except websockets.exceptions.ConnectionClosed as e:
+                        logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
+                    finally:
+                        await websocket.close()
+                        logger.warning(f"User ID: {truncate_userid(user_id)} | WebSocket connection closed")
+                        send_ping_task.cancel()
+                        break
 
-                        elif message.get("action") == "PONG":
-                            pong_response = {"id": message["id"], "origin_action": "PONG"}
-                            logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PONG response: {pong_response}")
-                            await websocket.send(json.dumps(pong_response))
-                            logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent PONG response ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
+            elif node_type == 'extension':
+                async with proxy_connect(
+                    uri,
+                    proxy=proxy,
+                    ssl=ssl_context,
+                    extra_headers={"Origin": "chrome-extension://ilehaonighjijnmpnagapkhpcdbhclfg", "User-Agent": custom_headers["User-Agent"]}
+                ) as websocket:
+                    logger.success(f"User ID: {truncate_userid(user_id)} | Successfully connected to WebSocket with Proxy: {truncate_proxy(protocol_proxy)}")
 
-                        elif message.get("action") == "HTTP_REQUEST":
-                            http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
-                            logger.debug(f"User ID: {truncate_userid(user_id)} | Sending HTTP_REQUEST response: {http_request_response}")
-                            await websocket.send(json.dumps(http_request_response))
-                            logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent HTTP_REQUEST response ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                    async def send_ping():
+                        while True:
+                            send_message = json.dumps({
+                                "id": str(uuid.uuid4()),
+                                "version": "1.0.0",
+                                "action": "PING",
+                                "data": {}
+                            })
+                            logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
+                            await websocket.send(send_message)
+                            rand_sleep = random.uniform(30, 60)  # random delay + reduce bandwidth usage
+                            logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
+                            await asyncio.sleep(rand_sleep)
 
-                except websockets.exceptions.ConnectionClosed as e:
-                    logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
-                finally:
-                    await websocket.close()
-                    logger.warning(f"User ID: {truncate_userid(user_id)} | WebSocket connection closed")
-                    send_ping_task.cancel()
-                    break
+                    send_ping_task = asyncio.create_task(send_ping())
+
+                    try:
+                        while True:
+                            response = await websocket.recv()
+                            message = json.loads(response)
+                            logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {message}")
+
+                            if message.get("action") == "AUTH":
+                                auth_response = {
+                                    "id": message["id"],
+                                    "origin_action": "AUTH",
+                                    "result": {
+                                        "browser_id": device_id,
+                                        "user_id": user_id,
+                                        "user_agent": custom_headers['User-Agent'],
+                                        "timestamp": int(time.time()),
+                                        "device_type": "extension",
+                                        "version": "4.26.2",
+                                        "extension_id": "ilehaonighjijnmpnagapkhpcdbhclfg"
+                                    }
+                                }
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending AUTH response ID: {auth_response['id']}")
+                                await websocket.send(json.dumps(auth_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully authenticated with Device ID: {device_id}")
+                            elif message.get("action") == "PONG":
+                                pong_response = {"id": message["id"], "origin_action": "PONG"}
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PONG response: {pong_response}")
+                                await websocket.send(json.dumps(pong_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent PONG response ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
+                            elif message.get("action") == "HTTP_REQUEST":
+                                http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending HTTP_REQUEST response: {http_request_response}")
+                                await websocket.send(json.dumps(http_request_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent HTTP_REQUEST response ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                    except websockets.exceptions.ConnectionClosed as e:
+                        logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
+                    finally:
+                        await websocket.close()
+                        logger.warning(f"User ID: {truncate_userid(user_id)} | WebSocket connection closed")
+                        send_ping_task.cancel()
+                        break
 
         except Exception as e:
             logger.error(f"User ID: {truncate_userid(user_id)} | Error with proxy {truncate_proxy(protocol_proxy)} ➜ {str(e)[:30]}**")
