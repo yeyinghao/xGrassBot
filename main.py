@@ -1,6 +1,7 @@
 # Copyright (C) 2024 officialputuid
 
 import asyncio
+import datetime
 import json
 import random
 import ssl
@@ -133,6 +134,8 @@ async def connect_to_wss(protocol_proxy, user_id):
                             }
                             logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {simply_message}")
 
+                            custom_date = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
                             if message.get("action") == "AUTH":
                                 auth_response = {
                                     "id": message["id"],
@@ -159,6 +162,26 @@ async def connect_to_wss(protocol_proxy, user_id):
                                 logger.debug(f"User ID: {truncate_userid(user_id)} | Sending HTTP_REQUEST response: {http_request_response}")
                                 await websocket.send(json.dumps(http_request_response))
                                 logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent HTTP_REQUEST response ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                            elif message.get("action") == "OPEN_TUNNEL":
+                                opentunnel_request_response = {
+                                    "id": message["id"],
+                                    "origin_action": "OPEN_TUNNEL",
+                                    "result": {
+                                        "url": message["url"],
+                                        "status": 200,
+                                        "status_text": "OK",
+                                        "headers": {
+                                            "content-type": "application/json; charset=utf-8",
+                                            "date": custom_date,
+                                            "keep-alive": "timeout=5",
+                                            "proxy-connection": "keep-alive",
+                                            "x-powered-by": "Express",
+                                        }
+                                    }
+                                }
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending OPEN_TUNNEL response: {opentunnel_request_response}")
+                                await websocket.send(json.dumps(opentunnel_request_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent OPEN_TUNNEL response ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
                     except websockets.exceptions.ConnectionClosed as e:
                         logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
                     finally:
@@ -202,6 +225,8 @@ async def connect_to_wss(protocol_proxy, user_id):
                             }
                             logger.info(f"User ID: {truncate_userid(user_id)} | Received message: {simply_message}")
 
+                            custom_date = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
                             if message.get("action") == "AUTH":
                                 auth_response = {
                                     "id": message["id"],
@@ -229,6 +254,26 @@ async def connect_to_wss(protocol_proxy, user_id):
                                 logger.debug(f"User ID: {truncate_userid(user_id)} | Sending HTTP_REQUEST response: {http_request_response}")
                                 await websocket.send(json.dumps(http_request_response))
                                 logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent HTTP_REQUEST response ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                            elif message.get("action") == "OPEN_TUNNEL":
+                                opentunnel_request_response = {
+                                    "id": message["id"],
+                                    "origin_action": "OPEN_TUNNEL",
+                                    "result": {
+                                        "url": message["url"],
+                                        "status": 200,
+                                        "status_text": "OK",
+                                        "headers": {
+                                            "content-type": "application/json; charset=utf-8",
+                                            "date": custom_date,
+                                            "keep-alive": "timeout=5",
+                                            "proxy-connection": "keep-alive",
+                                            "x-powered-by": "Express",
+                                        }
+                                    }
+                                }
+                                logger.debug(f"User ID: {truncate_userid(user_id)} | Sending OPEN_TUNNEL response: {opentunnel_request_response}")
+                                await websocket.send(json.dumps(opentunnel_request_response))
+                                logger.success(f"User ID: {truncate_userid(user_id)} | Successfully sent OPEN_TUNNEL response ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
                     except websockets.exceptions.ConnectionClosed as e:
                         logger.error(f"User ID: {truncate_userid(user_id)} | WebSocket closed | Error: {str(e)[:30]}**")
                     finally:
