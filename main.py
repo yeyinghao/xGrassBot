@@ -117,7 +117,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                             })
                             logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
                             await websocket.send(send_message)
-                            rand_sleep = random.uniform(30, 60)  # random delay + reduce bandwidth usage
+                            rand_sleep = random.uniform(10, 30)  # random delay + reduce bandwidth usage
                             logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
                             await asyncio.sleep(rand_sleep)
 
@@ -186,7 +186,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                             })
                             logger.debug(f"User ID: {truncate_userid(user_id)} | Sending PING message ID: {json.loads(send_message)['id']}")
                             await websocket.send(send_message)
-                            rand_sleep = random.uniform(30, 60)  # random delay + reduce bandwidth usage
+                            rand_sleep = random.uniform(10, 30)  # random delay + reduce bandwidth usage
                             logger.info(f"User ID: {truncate_userid(user_id)} | Sleeping for {rand_sleep:.2f} seconds")
                             await asyncio.sleep(rand_sleep)
 
