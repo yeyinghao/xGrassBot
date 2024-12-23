@@ -32,8 +32,10 @@ def print_header():
 # Initialize the header
 print_header()
 
-# Number of proxies to use /uid
+# Constants
 ONETIME_PROXY = 100
+PING_INTERVAL = 60
+TASK_INTERVAL = 1.5
 
 # Read UID and Proxy count
 def read_uid_and_proxy():
@@ -90,20 +92,14 @@ async def connect_to_wss(protocol_proxy, user_id):
     while True:
         try:
             await asyncio.sleep(random.uniform(0.1, 1.0)) # reduced frequency
-            user_agents = [
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; ARM Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-            ]
             custom_headers = {
-                "User-Agent": random.choice(user_agents)
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
             }
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
-            urilist = ["wss://proxy2.wynd.network:4444/", "wss://proxy2.wynd.network:4650/"]
-            uri = random.choice(urilist)
+            server_hostname = "proxy2.wynd.network"
+            uri = "wss://proxy2.wynd.network:4650/" # urilist = ["wss://proxy2.wynd.network:4444/", "wss://proxy2.wynd.network:4650/"]
             proxy = Proxy.from_url(protocol_proxy)
 
             if node_type == 'desktop':
@@ -111,6 +107,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                     uri,
                     proxy=proxy,
                     ssl=ssl_context,
+                    server_hostname=server_hostname,
                     extra_headers={"User-Agent": custom_headers["User-Agent"]}
                 ) as websocket:
                     logger.success(f"UID: {truncate_userid(user_id)} | Success connect to WS with Proxy: {truncate_proxy(protocol_proxy)}")
@@ -125,9 +122,8 @@ async def connect_to_wss(protocol_proxy, user_id):
                             })
                             logger.debug(f"UID: {truncate_userid(user_id)} | Send PING message ID: {json.loads(send_message)['id']}")
                             await websocket.send(send_message)
-                            rand_sleep = random.uniform(5, 30) # random delay + reduce bandwidth usage
-                            logger.info(f"UID: {truncate_userid(user_id)} | Sleep for {rand_sleep:.2f} seconds")
-                            await asyncio.sleep(rand_sleep)
+                            logger.info(f"UID: {truncate_userid(user_id)} | Success sent PING | Next in {PING_INTERVAL} seconds")
+                            await asyncio.sleep(PING_INTERVAL)
 
                     send_ping_task = asyncio.create_task(send_ping())
 
@@ -202,6 +198,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                     uri,
                     proxy=proxy,
                     ssl=ssl_context,
+                    server_hostname=server_hostname,
                     extra_headers={"Origin": "chrome-extension://ilehaonighjijnmpnagapkhpcdbhclfg", "User-Agent": custom_headers["User-Agent"]}
                 ) as websocket:
                     logger.success(f"UID: {truncate_userid(user_id)} | Success connected to WS with Proxy: {truncate_proxy(protocol_proxy)}")
@@ -216,9 +213,8 @@ async def connect_to_wss(protocol_proxy, user_id):
                             })
                             logger.debug(f"UID: {truncate_userid(user_id)} | Send PING | ID: {json.loads(send_message)['id']}")
                             await websocket.send(send_message)
-                            rand_sleep = random.uniform(5, 30) # random delay + reduce bandwidth usage
-                            logger.info(f"UID: {truncate_userid(user_id)} | Sleep for {rand_sleep:.2f} seconds")
-                            await asyncio.sleep(rand_sleep)
+                            logger.info(f"UID: {truncate_userid(user_id)} | Success sent PING | Next in {PING_INTERVAL} seconds")
+                            await asyncio.sleep(PING_INTERVAL)
 
                     send_ping_task = asyncio.create_task(send_ping())
 
@@ -327,7 +323,7 @@ async def main():
 
     for user_id in user_ids:
         for proxy in active_proxies:
-            await asyncio.sleep(random.uniform(2.0, 4.0))
+            await asyncio.sleep(TASK_INTERVAL)
             task = asyncio.create_task(connect_to_wss(proxy, user_id))
             tasks[task] = (proxy, user_id)
 
@@ -344,7 +340,7 @@ async def main():
                 new_proxy = random.choice(all_proxies)
                 active_proxies.append(new_proxy)
 
-                await asyncio.sleep(random.uniform(2.0, 4.0))
+                await asyncio.sleep(TASK_INTERVAL)
                 new_task = asyncio.create_task(connect_to_wss(new_proxy, user_id))
                 tasks[new_task] = (new_proxy, user_id)
                 logger.success(f"UID: {truncate_userid(user_id)} | Successfully replaced failed proxy: {truncate_proxy(failed_proxy)} with: {truncate_proxy(new_proxy)}")
@@ -353,7 +349,7 @@ async def main():
 
         for proxy in set(active_proxies) - {task[0] for task in tasks.values()}:
             for user_id in user_ids:
-                await asyncio.sleep(random.uniform(2.0, 4.0))
+                await asyncio.sleep(TASK_INTERVAL)
                 new_task = asyncio.create_task(connect_to_wss(proxy, user_id))
                 tasks[new_task] = (proxy, user_id)
                 logger.success(f"UID: {truncate_userid(user_id)} | Successfully started task with proxy: {truncate_proxy(proxy)}")
