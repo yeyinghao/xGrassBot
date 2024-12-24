@@ -23,7 +23,7 @@ logger.add(
 
 # main.py
 def print_header():
-    cn = pyfiglet.figlet_format("xGrassNode")
+    cn = pyfiglet.figlet_format("xGrassBot")
     print(cn)
     print("🌱 Season 2")
     print("🎨 by \033]8;;https://github.com/officialputuid\033\\officialputuid\033]8;;\033\\")
@@ -67,13 +67,14 @@ def get_user_input():
 remove_on_all_errors = get_user_input()
 print(f"🔵 You selected: {'Yes' if remove_on_all_errors else 'No'}, ENJOY!\n")
 
-# Ask user for node type (extension or desktop)
+# Ask user for node type
 def get_node_type():
     node_type = ""
-    while node_type not in ['extension', 'desktop']:
-        node_type = input("🔵 Choose node type (extension/desktop): ").strip().lower()
-        if node_type not in ['extension', 'desktop']:
-            print("🔴 Invalid input. Please enter 'extension' or 'desktop'.")
+    while node_type not in ['desktop', 'extension', 'grasslite']:
+        print(f"🧩 Desktop Node (2.0x Reward), Extension (1.25x Reward), GrassLite (1.0x Reward).")
+        node_type = input("🔵 Choose node type (desktop/extension/grasslite): ").strip().lower()
+        if node_type not in ['desktop', 'extension', 'grasslite']:
+            print("🔴 Invalid input. Please enter 'desktop' / 'extension' / 'grasslite'.")
     return node_type
 
 node_type = get_node_type()
@@ -87,7 +88,7 @@ def truncate_proxy(proxy):
 
 async def connect_to_wss(protocol_proxy, user_id):
     device_id = str(uuid.uuid3(uuid.NAMESPACE_DNS, protocol_proxy))
-    logger.info(f"UID: {truncate_userid(user_id)} | Device ID: {device_id} | Proxy: {truncate_proxy(protocol_proxy)}")
+    # logger.info(f"UID: {truncate_userid(user_id)} | Device ID: {device_id} | Proxy: {truncate_proxy(protocol_proxy)}")
 
     while True:
         try:
@@ -99,7 +100,9 @@ async def connect_to_wss(protocol_proxy, user_id):
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
             server_hostname = "proxy2.wynd.network"
-            uri = "wss://proxy2.wynd.network:4650/" # urilist = ["wss://proxy2.wynd.network:4444/", "wss://proxy2.wynd.network:4650/"]
+            # urilist = ["wss://proxy2.wynd.network:4444/", "wss://proxy2.wynd.network:4650/"]
+            # uri = random.choice(urilist)
+            uri = "wss://proxy2.wynd.network:4650/"
             proxy = Proxy.from_url(protocol_proxy)
 
             if node_type == 'desktop':
@@ -110,7 +113,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                     server_hostname=server_hostname,
                     extra_headers={"User-Agent": custom_headers["User-Agent"]}
                 ) as websocket:
-                    logger.success(f"UID: {truncate_userid(user_id)} | Success connect to WS with Proxy: {truncate_proxy(protocol_proxy)}")
+                    logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success connect to WS with Proxy: {truncate_proxy(protocol_proxy)}")
 
                     async def send_ping():
                         while True:
@@ -120,9 +123,9 @@ async def connect_to_wss(protocol_proxy, user_id):
                                 "action": "PING",
                                 "data": {}
                             })
-                            logger.debug(f"UID: {truncate_userid(user_id)} | Send PING message ID: {json.loads(send_message)['id']}")
+                            logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send PING message ID: {json.loads(send_message)['id']}")
                             await websocket.send(send_message)
-                            logger.info(f"UID: {truncate_userid(user_id)} | Success sent PING | Next in {PING_INTERVAL} seconds")
+                            logger.info(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent PING | Next in {PING_INTERVAL} seconds")
                             await asyncio.sleep(PING_INTERVAL)
 
                     send_ping_task = asyncio.create_task(send_ping())
@@ -135,7 +138,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                                 'id': message.get('id'),
                                 'action': message.get('action')
                             }
-                            logger.info(f"UID: {truncate_userid(user_id)} | Received message: {simply_message}")
+                            logger.info(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Received message: {simply_message}")
 
                             custom_date = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
 
@@ -152,19 +155,19 @@ async def connect_to_wss(protocol_proxy, user_id):
                                         "version": "4.30.0"
                                     }
                                 }
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send AUTH | ID: {auth_response['id']} | version: {auth_response['result']['version']}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send AUTH | ID: {auth_response['id']} | version: {auth_response['result']['version']}")
                                 await websocket.send(json.dumps(auth_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success AUTH with Device ID: {device_id}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success AUTH with Device ID: {device_id}")
                             elif message.get("action") == "PONG":
                                 pong_response = {"id": message["id"], "origin_action": "PONG"}
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send PONG: {pong_response}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send PONG: {pong_response}")
                                 await websocket.send(json.dumps(pong_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success sent PONG | ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent PONG | ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
                             elif message.get("action") == "HTTP_REQUEST":
                                 http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send HTTP_REQUEST: {http_request_response}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send HTTP_REQUEST: {http_request_response}")
                                 await websocket.send(json.dumps(http_request_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success sent HTTP_REQUEST | ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent HTTP_REQUEST | ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
                             elif message.get("action") == "OPEN_TUNNEL":
                                 opentunnel_request_response = {
                                     "id": message["id"],
@@ -182,14 +185,14 @@ async def connect_to_wss(protocol_proxy, user_id):
                                         }
                                     }
                                 }
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send OPEN_TUNNEL: {opentunnel_request_response}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send OPEN_TUNNEL: {opentunnel_request_response}")
                                 await websocket.send(json.dumps(opentunnel_request_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success sent OPEN_TUNNEL | ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent OPEN_TUNNEL | ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
                     except websockets.exceptions.ConnectionClosed as e:
-                        logger.error(f"UID: {truncate_userid(user_id)} | WebSocket closed unexpectedly | Proxy: {truncate_proxy(protocol_proxy)} | Error: {str(e)[:30]}**")
+                        logger.error(f"UID: {truncate_userid(user_id)} | Node: {node_type} | WebSocket closed unexpectedly | Proxy: {truncate_proxy(protocol_proxy)} | Error: {str(e)[:30]}**")
                     finally:
                         await websocket.close()
-                        logger.warning(f"UID: {truncate_userid(user_id)} | WebSocket connection closed | Proxy: {truncate_proxy(protocol_proxy)}")
+                        logger.warning(f"UID: {truncate_userid(user_id)} | Node: {node_type} | WebSocket connection closed | Proxy: {truncate_proxy(protocol_proxy)}")
                         send_ping_task.cancel()
                         break
 
@@ -199,9 +202,9 @@ async def connect_to_wss(protocol_proxy, user_id):
                     proxy=proxy,
                     ssl=ssl_context,
                     server_hostname=server_hostname,
-                    extra_headers={"Origin": "chrome-extension://ilehaonighjijnmpnagapkhpcdbhclfg", "User-Agent": custom_headers["User-Agent"]}
+                    extra_headers={"Origin": "chrome-extension://lkbnfiajjmbhnfledhphioinpickokdi", "User-Agent": custom_headers["User-Agent"]}
                 ) as websocket:
-                    logger.success(f"UID: {truncate_userid(user_id)} | Success connected to WS with Proxy: {truncate_proxy(protocol_proxy)}")
+                    logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success connected to WS with Proxy: {truncate_proxy(protocol_proxy)}")
 
                     async def send_ping():
                         while True:
@@ -211,9 +214,9 @@ async def connect_to_wss(protocol_proxy, user_id):
                                 "action": "PING",
                                 "data": {}
                             })
-                            logger.debug(f"UID: {truncate_userid(user_id)} | Send PING | ID: {json.loads(send_message)['id']}")
+                            logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send PING | ID: {json.loads(send_message)['id']}")
                             await websocket.send(send_message)
-                            logger.info(f"UID: {truncate_userid(user_id)} | Success sent PING | Next in {PING_INTERVAL} seconds")
+                            logger.info(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent PING | Next in {PING_INTERVAL} seconds")
                             await asyncio.sleep(PING_INTERVAL)
 
                     send_ping_task = asyncio.create_task(send_ping())
@@ -226,7 +229,7 @@ async def connect_to_wss(protocol_proxy, user_id):
                                 'id': message.get('id'),
                                 'action': message.get('action')
                             }
-                            logger.info(f"UID: {truncate_userid(user_id)} | Received message: {simply_message}")
+                            logger.info(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Received message: {simply_message}")
 
                             custom_date = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
 
@@ -244,19 +247,19 @@ async def connect_to_wss(protocol_proxy, user_id):
                                         "extension_id": "ilehaonighjijnmpnagapkhpcdbhclfg"
                                     }
                                 }
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send AUTH | ID: {auth_response['id']} | version: {auth_response['result']['version']}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send AUTH | ID: {auth_response['id']} | version: {auth_response['result']['version']}")
                                 await websocket.send(json.dumps(auth_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success AUTH with Device ID: {device_id}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success AUTH with Device ID: {device_id}")
                             elif message.get("action") == "PONG":
                                 pong_response = {"id": message["id"], "origin_action": "PONG"}
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send PONG: {pong_response}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send PONG: {pong_response}")
                                 await websocket.send(json.dumps(pong_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success sent PONG | ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent PONG | ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
                             elif message.get("action") == "HTTP_REQUEST":
                                 http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send HTTP_REQUEST: {http_request_response}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send HTTP_REQUEST: {http_request_response}")
                                 await websocket.send(json.dumps(http_request_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success sent HTTP_REQUEST | ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent HTTP_REQUEST | ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
                             elif message.get("action") == "OPEN_TUNNEL":
                                 opentunnel_request_response = {
                                     "id": message["id"],
@@ -274,14 +277,106 @@ async def connect_to_wss(protocol_proxy, user_id):
                                         }
                                     }
                                 }
-                                logger.debug(f"UID: {truncate_userid(user_id)} | Send OPEN_TUNNEL: {opentunnel_request_response}")
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send OPEN_TUNNEL: {opentunnel_request_response}")
                                 await websocket.send(json.dumps(opentunnel_request_response))
-                                logger.success(f"UID: {truncate_userid(user_id)} | Success sent OPEN_TUNNEL | ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent OPEN_TUNNEL | ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
                     except websockets.exceptions.ConnectionClosed as e:
-                        logger.error(f"UID: {truncate_userid(user_id)} | WebSocket closed unexpectedly | Proxy: {truncate_proxy(protocol_proxy)} | Error: {str(e)[:30]}**")
+                        logger.error(f"UID: {truncate_userid(user_id)} | Node: {node_type} | WebSocket closed unexpectedly | Proxy: {truncate_proxy(protocol_proxy)} | Error: {str(e)[:30]}**")
                     finally:
                         await websocket.close()
-                        logger.warning(f"UID: {truncate_userid(user_id)} | WebSocket connection closed | Proxy: {truncate_proxy(protocol_proxy)}")
+                        logger.warning(f"UID: {truncate_userid(user_id)} | Node: {node_type} | WebSocket connection closed | Proxy: {truncate_proxy(protocol_proxy)}")
+                        send_ping_task.cancel()
+                        break
+
+            elif node_type == 'grasslite':
+                async with proxy_connect(
+                    uri,
+                    proxy=proxy,
+                    ssl=ssl_context,
+                    server_hostname=server_hostname,
+                    extra_headers={"Origin": "chrome-extension://ilehaonighjijnmpnagapkhpcdbhclfg", "User-Agent": custom_headers["User-Agent"]}
+                ) as websocket:
+                    logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success connected to WS with Proxy: {truncate_proxy(protocol_proxy)}")
+
+                    async def send_ping():
+                        while True:
+                            send_message = json.dumps({
+                                "id": str(uuid.uuid4()),
+                                "version": "1.0.0",
+                                "action": "PING",
+                                "data": {}
+                            })
+                            logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send PING | ID: {json.loads(send_message)['id']}")
+                            await websocket.send(send_message)
+                            logger.info(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent PING | Next in {PING_INTERVAL} seconds")
+                            await asyncio.sleep(PING_INTERVAL)
+
+                    send_ping_task = asyncio.create_task(send_ping())
+
+                    try:
+                        while True:
+                            response = await websocket.recv()
+                            message = json.loads(response)
+                            simply_message = {
+                                'id': message.get('id'),
+                                'action': message.get('action')
+                            }
+                            logger.info(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Received message: {simply_message}")
+
+                            custom_date = datetime.datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+                            if message.get("action") == "AUTH":
+                                auth_response = {
+                                    "id": message["id"],
+                                    "origin_action": "AUTH",
+                                    "result": {
+                                        "browser_id": device_id,
+                                        "user_id": user_id,
+                                        "user_agent": custom_headers['User-Agent'],
+                                        "timestamp": int(time.time()),
+                                        "device_type": "extension",
+                                        "version": "4.26.2",
+                                        "extension_id": "ilehaonighjijnmpnagapkhpcdbhclfg"
+                                    }
+                                }
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send AUTH | ID: {auth_response['id']} | version: {auth_response['result']['version']}")
+                                await websocket.send(json.dumps(auth_response))
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success AUTH with Device ID: {device_id}")
+                            elif message.get("action") == "PONG":
+                                pong_response = {"id": message["id"], "origin_action": "PONG"}
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send PONG: {pong_response}")
+                                await websocket.send(json.dumps(pong_response))
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent PONG | ID: {pong_response['id']} | Action: {pong_response['origin_action']}")
+                            elif message.get("action") == "HTTP_REQUEST":
+                                http_request_response = {"id": message["id"], "origin_action": "HTTP_REQUEST"}
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send HTTP_REQUEST: {http_request_response}")
+                                await websocket.send(json.dumps(http_request_response))
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent HTTP_REQUEST | ID: {http_request_response['id']} | Action: {http_request_response['origin_action']}")
+                            elif message.get("action") == "OPEN_TUNNEL":
+                                opentunnel_request_response = {
+                                    "id": message["id"],
+                                    "origin_action": "OPEN_TUNNEL",
+                                    "result": {
+                                        "url": message["url"],
+                                        "status": 200,
+                                        "status_text": "OK",
+                                        "headers": {
+                                            "content-type": "application/json; charset=utf-8",
+                                            "date": custom_date,
+                                            "keep-alive": "timeout=5",
+                                            "proxy-connection": "keep-alive",
+                                            "x-powered-by": "Express",
+                                        }
+                                    }
+                                }
+                                logger.debug(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Send OPEN_TUNNEL: {opentunnel_request_response}")
+                                await websocket.send(json.dumps(opentunnel_request_response))
+                                logger.success(f"UID: {truncate_userid(user_id)} | Node: {node_type} | Success sent OPEN_TUNNEL | ID: {opentunnel_request_response['id']} | Action: {opentunnel_request_response['origin_action']}")
+                    except websockets.exceptions.ConnectionClosed as e:
+                        logger.error(f"UID: {truncate_userid(user_id)} | Node: {node_type} | WebSocket closed unexpectedly | Proxy: {truncate_proxy(protocol_proxy)} | Error: {str(e)[:30]}**")
+                    finally:
+                        await websocket.close()
+                        logger.warning(f"UID: {truncate_userid(user_id)} | Node: {node_type} | WebSocket connection closed | Proxy: {truncate_proxy(protocol_proxy)}")
                         send_ping_task.cancel()
                         break
 
